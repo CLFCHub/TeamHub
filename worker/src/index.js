@@ -79,17 +79,23 @@ async function getRoster(env, grade) {
   };
 }
 
-function mockPlayers(grade) {
-  return Array.from({ length: 22 }, (_, i) => ({
-    name: `${GRADES[grade].label} Player ${String(i + 1).padStart(2, "0")}`,
-    id: `MOCK-${grade.toUpperCase()}-${String(i + 1).padStart(3, "0")}`,
-    firstName: GRADES[grade].label,
-    lastName: `Player ${String(i + 1).padStart(2, "0")}`,
-    teamId: GRADES[grade].teamId,
-    roleType: "Player",
-    isRegisteredPlayer: true,
-    pin: String(1000 + i)
-  }));
+async function mockPlayers(env, grade) {
+  const rows = await env.DB.prepare("SELECT name, pin FROM members LIMIT 22").all();
+  return (rows.results || []).map((r, i) => {
+    const parts = r.name.split(" ");
+    const firstName = parts[0] || "Mock";
+    const lastName = parts.slice(1).join(" ") || `Player ${i + 1}`;
+    return {
+      name: r.name,
+      id: `MOCK-${grade.toUpperCase()}-${String(i + 1).padStart(3, "0")}`,
+      firstName,
+      lastName,
+      teamId: GRADES[grade].teamId,
+      roleType: "Player",
+      isRegisteredPlayer: true,
+      pin: r.pin
+    };
+  });
 }
 
 async function lookupMember(env, player) {
@@ -220,6 +226,14 @@ export default {
     const path = url.pathname;
 
     try {
+      if (path === "/api/debug/env" && request.method === "GET") {
+        return json(request, { 
+          hasPasscode: !!env.ADMIN_PASSCODE, 
+          passcodeLength: env.ADMIN_PASSCODE?.length,
+          passcodeFirstChar: env.ADMIN_PASSCODE?.[0]
+        });
+      }
+
       if (path === "/api/admin/status" && request.method === "GET") {
         return json(request, { authenticated: await requireAdmin(request, env) });
       }
@@ -244,7 +258,7 @@ export default {
 
         const action = adminMatch[1];
         if (action === "mock") {
-          const players = mockPlayers(grade);
+          const players = await mockPlayers(env, grade);
           await saveRoster(env, grade, players, "mock");
           return json(request, { ok: true, players });
         }
