@@ -5,16 +5,20 @@ const GRADES = {
   thirds:   { label: "THIRDS", teamId: "696edf4b" }
 };
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "Content-Type",
-  "Access-Control-Allow-Methods": "GET,POST,OPTIONS"
-};
+function getCorsHeaders(request) {
+  const origin = request.headers.get("Origin");
+  return {
+    "Access-Control-Allow-Origin": origin || "*",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+    "Access-Control-Allow-Credentials": "true"
+  };
+}
 
-function json(data, status = 200, extra = {}) {
+function json(request, data, status = 200, extra = {}) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { "Content-Type": "application/json", ...corsHeaders, ...extra }
+    headers: { "Content-Type": "application/json", ...getCorsHeaders(request), ...extra }
   });
 }
 
@@ -210,45 +214,45 @@ export default {
   },
 
   async fetch(request, env) {
-    if (request.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+    if (request.method === "OPTIONS") return new Response(null, { headers: getCorsHeaders(request) });
 
     const url = new URL(request.url);
     const path = url.pathname;
 
     try {
       if (path === "/api/admin/status" && request.method === "GET") {
-        return json({ authenticated: await requireAdmin(request, env) });
+        return json(request, { authenticated: await requireAdmin(request, env) });
       }
 
       if (path === "/api/admin/login" && request.method === "POST") {
         const { passcode } = await request.json();
         if (!env.ADMIN_PASSCODE || passcode !== env.ADMIN_PASSCODE) {
-          return json({ error: "Invalid passcode" }, 401);
+          return json(request, { error: "Invalid passcode" }, 401);
         }
-        return json({ ok: true }, 200, { "Set-Cookie": setAdminCookie(env) });
+        return json(request, { ok: true }, 200, { "Set-Cookie": setAdminCookie(env) });
       }
 
       if (path === "/api/admin/logout" && request.method === "POST") {
-        return json({ ok: true }, 200, { "Set-Cookie": clearAdminCookie(env) });
+        return json(request, { ok: true }, 200, { "Set-Cookie": clearAdminCookie(env) });
       }
 
       const adminMatch = path.match(/^\/api\/admin\/(mock|clear|clear-team)$/);
       if (adminMatch && request.method === "POST") {
-        if (!(await requireAdmin(request, env))) return json({ error: "Unauthorized" }, 401);
+        if (!(await requireAdmin(request, env))) return json(request, { error: "Unauthorized" }, 401);
         const { grade } = await request.json();
-        if (!isGrade(grade)) return json({ error: "Invalid grade" }, 400);
+        if (!isGrade(grade)) return json(request, { error: "Invalid grade" }, 400);
 
         const action = adminMatch[1];
         if (action === "mock") {
           const players = mockPlayers(grade);
           await saveRoster(env, grade, players, "mock");
-          return json({ ok: true, players });
+          return json(request, { ok: true, players });
         }
 
         if (action === "clear") {
           await env.DB.prepare("DELETE FROM roster_players WHERE grade = ?").bind(grade).run();
           await env.DB.prepare("DELETE FROM roster_state WHERE grade = ?").bind(grade).run();
-          return json({ ok: true });
+          return json(request, { ok: true });
         }
 
         if (action === "clear-team") {
@@ -256,14 +260,14 @@ export default {
             env.DB.prepare("DELETE FROM roster_players WHERE grade = ?").bind(grade),
             env.DB.prepare("DELETE FROM roster_state WHERE grade = ?").bind(grade)
           ]);
-          return json({ ok: true });
+          return json(request, { ok: true });
         }
       }
 
       const rosterMatch = path.match(/^\/api\/roster\/(league|reserves|colts|thirds)$/);
       if (rosterMatch && request.method === "GET") {
         const grade = rosterMatch[1];
-        return json(await getRoster(env, grade));
+        return json(request, await getRoster(env, grade));
       }
 
       const playhqMatch = path.match(/^\/api\/roster\/(league|reserves|colts|thirds)\/playhq$/);
@@ -271,13 +275,13 @@ export default {
         const grade = playhqMatch[1];
         const result = await importPlayHQRoster(env, grade);
         const current = await getRoster(env, grade);
-        return json({ ...result, ...current });
+        return json(request, { ...result, ...current });
       }
 
-      return json({ error: "Not found" }, 404);
+      return json(request, { error: "Not found" }, 404);
     } catch (error) {
       console.error(error);
-      return json({ error: error.message || "Internal server error" }, 500);
+      return json(request, { error: error.message || "Internal server error" }, 500);
     }
   }
 };
