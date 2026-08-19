@@ -17,7 +17,7 @@ metadata = {
     "vars": {
         "PLAYHQ_ORG_ID": "89b6bccc-ad76-4766-8b96-9f1fc00738ec",
         "PLAYHQ_API_KEY": "1334794e-2013-4983-994c-92cc95d25e86",
-        "ADMIN_PASSCODE": "clfchub2026"
+        "ADMIN_PASSCODE": "94172079"
     },
     "triggers": {
         "crons": [
