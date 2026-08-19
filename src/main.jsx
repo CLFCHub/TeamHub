@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import "./styles.css";
 
@@ -198,29 +198,38 @@ function AdminPanel({ onClose }) {
               placeholder="Enter passcode"
               autoFocus
             />
-            <button className="primary" disabled={busy}>Unlock</button>
             {error && <div className="error">{error}</div>}
+            <button type="submit" disabled={busy}>
+              {busy ? "LOGGING IN…" : "LOGIN"}
+            </button>
           </form>
         ) : (
-          <div className="admin-controls">
-            <label>Grade</label>
-            <select value={grade} onChange={e => setGrade(e.target.value)}>
-              {GRADES.map(g => <option key={g.key} value={g.key}>{g.label}</option>)}
-            </select>
+          <div className="admin-actions">
+            <div className="field">
+              <label>Select grade</label>
+              <select value={grade} onChange={e => setGrade(e.target.value)}>
+                {GRADES.map(g => <option key={g.key} value={g.key}>{g.label}</option>)}
+              </select>
+            </div>
 
-            <button className="primary" disabled={busy} onClick={() => action("mock")}>
-              MOCK UP 22 PLAYERS
-            </button>
-            <button className="danger" disabled={busy} onClick={() => action("clear")}>
-              CLEAR LIST
-            </button>
+            <div className="actions-grid">
+              <button onClick={() => action("mock")} disabled={busy} className="secondary">
+                MOCK UP 22 PLAYERS
+              </button>
+              <button onClick={() => action("clear")} disabled={busy} className="danger">
+                CLEAR LIST
+              </button>
+              <button onClick={() => action("clear-team")} disabled={busy} className="danger">
+                CLEAR TEAM
+              </button>
+            </div>
 
             {message && <div className="success">{message}</div>}
             {error && <div className="error">{error}</div>}
-
-            <p className="hint">
-              Mock data is stored in Cloudflare D1. The PlayHQ API key remains server-side as a Worker secret.
-            </p>
+            
+            <button className="logout" onClick={() => api("/api/admin/logout", { method: "POST" }).then(() => setAuthed(false))}>
+              LOGOUT
+            </button>
           </div>
         )}
       </aside>
