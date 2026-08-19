@@ -7,8 +7,21 @@ const GRADES = {
 
 function getCorsHeaders(request) {
   const origin = request.headers.get("Origin");
+  const allowedOrigins = [
+    "https://clfchub.pages.dev",
+    "https://clfchub.github.io",
+    "http://localhost:5173"
+  ];
+  
+  let allowOrigin = "*";
+  if (origin) {
+    if (allowedOrigins.some(ao => origin.startsWith(ao))) {
+      allowOrigin = origin;
+    }
+  }
+
   return {
-    "Access-Control-Allow-Origin": origin || "*",
+    "Access-Control-Allow-Origin": allowOrigin,
     "Access-Control-Allow-Headers": "Content-Type, X-Admin-Passcode",
     "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
     "Access-Control-Allow-Credentials": "true"
