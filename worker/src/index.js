@@ -9,7 +9,7 @@ function getCorsHeaders(request) {
   const origin = request.headers.get("Origin");
   return {
     "Access-Control-Allow-Origin": origin || "*",
-    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Headers": "Content-Type, X-Admin-Passcode",
     "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
     "Access-Control-Allow-Credentials": "true"
   };
@@ -31,16 +31,8 @@ function cookieName(env) {
 }
 
 async function requireAdmin(request, env) {
-  const cookie = request.headers.get("Cookie") || "";
-  return cookie.split(";").some(c => c.trim() === `${cookieName(env)}=1`);
-}
-
-function setAdminCookie(env) {
-  return `${cookieName(env)}=1; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=28800`;
-}
-
-function clearAdminCookie(env) {
-  return `${cookieName(env)}=1; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0`;
+  const auth = request.headers.get("X-Admin-Passcode");
+  return auth === env.ADMIN_PASSCODE;
 }
 
 async function getRoster(env, grade) {
@@ -243,11 +235,11 @@ export default {
         if (!env.ADMIN_PASSCODE || passcode !== env.ADMIN_PASSCODE) {
           return json(request, { error: "Invalid passcode" }, 401);
         }
-        return json(request, { ok: true }, 200, { "Set-Cookie": setAdminCookie(env) });
+        return json(request, { ok: true });
       }
 
       if (path === "/api/admin/logout" && request.method === "POST") {
-        return json(request, { ok: true }, 200, { "Set-Cookie": clearAdminCookie(env) });
+        return json(request, { ok: true });
       }
 
       const adminMatch = path.match(/^\/api\/admin\/(mock|clear|clear-team)$/);

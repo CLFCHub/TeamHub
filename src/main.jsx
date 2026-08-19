@@ -12,9 +12,17 @@ const GRADES = [
 const apiBase = "https://clfchub.clfchub.workers.dev";
 
 async function api(path, options = {}) {
+  const passcode = localStorage.getItem("clfchub_passcode");
+  const headers = { 
+    "Content-Type": "application/json", 
+    ...(options.headers || {}) 
+  };
+  if (passcode) {
+    headers["X-Admin-Passcode"] = passcode;
+  }
+
   const response = await fetch(`${apiBase}${path}`, {
-    credentials: "include",
-    headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+    headers,
     ...options
   });
   const data = await response.json().catch(() => ({}));
@@ -156,6 +164,7 @@ function AdminPanel({ onClose }) {
         method: "POST",
         body: JSON.stringify({ passcode })
       });
+      localStorage.setItem("clfchub_passcode", passcode);
       setAuthed(true);
       setPasscode("");
     } catch (e) {
@@ -227,7 +236,10 @@ function AdminPanel({ onClose }) {
             {message && <div className="success">{message}</div>}
             {error && <div className="error">{error}</div>}
             
-            <button className="logout" onClick={() => api("/api/admin/logout", { method: "POST" }).then(() => setAuthed(false))}>
+            <button className="logout" onClick={() => {
+              localStorage.removeItem("clfchub_passcode");
+              api("/api/admin/logout", { method: "POST" }).then(() => setAuthed(false));
+            }}>
               LOGOUT
             </button>
           </div>
