@@ -9,7 +9,7 @@ const GRADES = [
   { key: "thirds", label: "THIRDS", teamId: "696edf4b" }
 ];
 
-const apiBase = import.meta.env.VITE_WORKER_URL || "";
+const apiBase = "https://clfchub.clfchub.workers.dev";
 
 async function api(path, options = {}) {
   const response = await fetch(`${apiBase}${path}`, {
