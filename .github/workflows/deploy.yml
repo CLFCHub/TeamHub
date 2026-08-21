@@ -25,7 +25,7 @@ jobs:
       - name: Build frontend
         run: npm run build
         env:
-          VITE_WORKER_URL: https://clfchub.clfchub.workers.dev
+          VITE_WORKER_URL: https://playhq-sync.clfchub.workers.dev
 
       - name: Publish to Cloudflare Pages
         uses: cloudflare/pages-action@1
