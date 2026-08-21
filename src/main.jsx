@@ -9,7 +9,7 @@ const GRADES = [
   { key: "thirds", label: "THIRDS", teamId: "696edf4b" }
 ];
 
-const apiBase = import.meta.env.VITE_WORKER_URL || "https://clfchub.clfchub.workers.dev";
+const apiBase = import.meta.env.VITE_WORKER_URL || "https://playhq-sync.clfchub.workers.dev";
 
 async function api(path, options = {}) {
   const passcode = localStorage.getItem("clfchub_passcode");
