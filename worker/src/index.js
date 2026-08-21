@@ -574,6 +574,26 @@ async function upsertPlayers(
       )
       .run();
 
+    // ✅ CRITICAL FIX: Look up members.id for foreign key constraint
+    // The spinning wheel REQUIRES roster_players.id to reference members.id
+    const memberRecord = await env.DB.prepare(
+      `SELECT id FROM members 
+       WHERE playhq_uid = ? OR name = ?
+       LIMIT 1`
+    )
+      .bind(playhqId, fullName)
+      .first();
+
+    const memberId = memberRecord?.id || null;
+
+    if (!memberId) {
+      console.warn(
+        `[SYNC] Player not found in members table: PlayHQ=${playhqId}, name="${fullName}". ` +
+        `Roster will have id=NULL and spinning wheel will fail on this player. ` +
+        `Add member to members table first.`
+      );
+    }
+
     await env.DB.prepare(
       `INSERT INTO roster_players
         (
@@ -585,14 +605,16 @@ async function upsertPlayers(
           playhq_json,
           sort_order
         )
-       VALUES (NULL, ?, ?, ?, NULL, ?, 0)
+       VALUES (?, ?, ?, ?, NULL, ?, 0)
        ON CONFLICT(playhq_uid)
        DO UPDATE SET
+         id = excluded.id,
          grade = excluded.grade,
          name = excluded.name,
          playhq_json = excluded.playhq_json`
     )
       .bind(
+        memberId,
         frontendGrade,
         fullName,
         playhqId,
@@ -710,6 +732,7 @@ async function handleMockRoster(request, env) {
       pin: m.pin,
     });
 
+    // ✅ CRITICAL FIX: Use members.id for FK constraint, not NULL
     await env.DB.prepare(
       `INSERT INTO roster_players
         (
@@ -721,9 +744,10 @@ async function handleMockRoster(request, env) {
           playhq_json,
           sort_order
         )
-       VALUES (NULL, ?, ?, ?, ?, ?, ?)
+       VALUES (?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(playhq_uid)
        DO UPDATE SET
+         id = excluded.id,
          grade = excluded.grade,
          name = excluded.name,
          pin = excluded.pin,
@@ -731,6 +755,7 @@ async function handleMockRoster(request, env) {
          sort_order = excluded.sort_order`
     )
       .bind(
+        m.id,
         grade,
         m.name,
         playhqId,
