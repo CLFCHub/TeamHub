@@ -32,6 +32,6 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: d40a8e27f684205147ee18af6013dc0e
-          projectName: clfchub
+          projectName: clfchub-teamhub
           directory: dist
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
