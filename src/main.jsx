@@ -277,6 +277,9 @@ function AdminPanel({ onClose }) {
             data.deleted || 0
           } players from ${grade}.`
         );
+      } else if (kind === "deepSync") {
+        const data = await api("/sync/members");
+        setMessage(data.message || "Deep sync complete.");
       }
     } catch (e) {
       setError(e.message);
@@ -334,6 +337,14 @@ function AdminPanel({ onClose }) {
           </div>
 
           <div className="actions-grid">
+            <button
+              onClick={() => action("deepSync")}
+              disabled={busy}
+              className="primary"
+            >
+              RUN DEEP SYNC
+            </button>
+
             <button
               onClick={() => action("mock")}
               disabled={busy}
